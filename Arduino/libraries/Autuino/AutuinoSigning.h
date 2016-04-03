@@ -1,0 +1,5 @@
+class AutuinoSigning
+{
+	public:
+		AutuinoSigning();	
+};
