@@ -629,10 +629,10 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		state_receive receipt_state;	
 		//void(*receivefunc)(uint16_t,uint16_t,uint8_t*);	
 		void(*executefunction)(uint16_t,uint8_t,notificationdata*)=nullptr;	
-		uint16_t numberofsubscriptions;
-		functionsubscription* subscriptions;
-		uint16_t numberoffunctionmappers;
-		functionmapper* functionmappers;		
+		uint16_t numberofsubscriptions=0;
+		functionsubscription* subscriptions=nullptr;
+		uint16_t numberoffunctionmappers=0;
+		functionmapper* functionmappers=nullptr;		
 		AutuinoPowerSupply* powersupply=nullptr;
 		AutuinoSigning* _signingobject=nullptr;
 		AutuinoEncryption* _encryptionobject=nullptr;

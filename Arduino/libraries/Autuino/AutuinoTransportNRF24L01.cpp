@@ -549,7 +549,8 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 		
 		//collect the destinations that will receive the notification because of the subscriptions
 		receipt_state.processdestinations=true;
-		if(subscriptions) {
+		receipt_state.numberofdestinations=0;
+		if(numberofsubscriptions) {
 			receipt_state.numberofdestinations=0;		
 			receipt_state.destinationaddresses = 0;		
 			for(int i=0;i<numberofsubscriptions;i++) {
