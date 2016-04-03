@@ -1,5 +1,5 @@
 #include "AutuinoTransportNRF24L01.h"
-#include "additional/sha256.h"
+//#include "sha256.h"
 
 AutuinoTransportNRF24L01::AutuinoTransportNRF24L01(uint8_t ce, uint8_t cs, uint8_t paLevel, uint8_t channel)
 	:
@@ -586,7 +586,7 @@ void AutuinoTransportNRF24L01::processSubscriptions() {
 			Serial.print(receipt_state.destinationaddresses[i]);
 			Serial.print(",");
 #endif			
-			executeFunction(getNodeAddress(), receipt_state.destinationaddresses[i], tmpdata->notificationtype, tmpdata->functionid, tmpdata->notificationunit, tmpdata->notificationvalue);
+			//executeFunction(getNodeAddress(), receipt_state.destinationaddresses[i], tmpdata->notificationtype, tmpdata->functionid, tmpdata->notificationunit, tmpdata->notificationvalue);
 		}
 #ifdef DEBUG		
 		Serial.println("");
@@ -601,6 +601,15 @@ void AutuinoTransportNRF24L01::processSubscriptions() {
 void AutuinoTransportNRF24L01::setRemoteToLocalFunctionMapping(uint16_t numfunctionmapper, functionmapper* functionmapper) {
 	functionmappers = functionmapper;
 	numberoffunctionmappers = numfunctionmapper;
+}
+
+void AutuinoTransportNRF24L01::addFunctionMapperItem(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid) {
+	numberoffunctionmappers++;
+	realloc(functionmappers,sizeof(functionmapper)*numberoffunctionmappers);
+	functionmappers[numberoffunctionmappers-1].sourcenodeaddress = sourcenodeaddress;
+	functionmappers[numberoffunctionmappers-1].sourcenotificationtype = notificationtype;
+	functionmappers[numberoffunctionmappers-1].sourcefunctionid = functionid;
+	functionmappers[numberoffunctionmappers-1].maptofunctionid = maptofunctionid;
 }
 
 //Triggers are called from a functionid of the device. Any matches between the notificationtype from the message and functionid of the device will trigger a message to the

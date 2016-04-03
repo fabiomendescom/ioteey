@@ -1,9 +1,8 @@
 #include "AutuinoTransport.h"
 #include "AutuinoSigning.h"
 #include "AutuinoEncryption.h"
-#include "additional/RF24.h"
-#include "additional/RF24_config.h"
-//#include "additional/sha256.h"
+#include "RF24.h"
+#include "RF24_config.h"
 #include <EEPROM.h>
 #include "AutuinoPowerSupply.h"
 
@@ -599,6 +598,7 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
         void executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint32_t value);
         void setFunctionSubscriptions(uint16_t numsubscription, functionsubscription* subscription);   
         void setRemoteToLocalFunctionMapping(uint16_t numfunctionmapper, functionmapper* functionmapper);
+        void addFunctionMapperItem(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid);
 
 		//void gethmacsha256(uint8_t* hash, uint8_t protpacket, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t handshakeinfo);				
 		//void buildDistanceRequestSegment(segment_dist_request* request, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t* signature);

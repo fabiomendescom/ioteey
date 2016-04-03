@@ -1,3 +1,4 @@
+
 #include "AutuinoTransportNRF24L01.h"
 
 int freeRam () {
@@ -66,14 +67,16 @@ void setup() {
   //is there a way to check if it is up or somethi8ng?
 
    radio.setExecuteFunction(&functionExecuted);
-  
-   functionmapper* mappervar;
-   mappervar = (functionmapper*)malloc(sizeof(functionmapper));
-   mappervar[0].sourcenodeaddress = 45;
-   mappervar[0].sourcenotificationtype = 10;
-   mappervar[0].sourcefunctionid = 1;
-   mappervar[0].maptofunctionid = 3;
-   radio.setRemoteToLocalFunctionMapping(1,mappervar);
+
+   radio.addFunctionMapperItem(45,10,1,3);
+   
+   //functionmapper* mappervar;
+   //mappervar = (functionmapper*)malloc(sizeof(functionmapper));
+   //mappervar[0].sourcenodeaddress = 45;
+   //mappervar[0].sourcenotificationtype = 10;
+   //mappervar[0].sourcefunctionid = 1;
+   //mappervar[0].maptofunctionid = 3;
+   //radio.setRemoteToLocalFunctionMapping(1,mappervar);
    
    //functionsubscription* triggervar;
    //triggervar = (functionsubscription*)malloc(sizeof(functionsubscription));
@@ -91,3 +94,4 @@ void loop() {
   //Serial.print("RAM: ");
   //Serial.println(freeRam());  
 }
+
