@@ -40,7 +40,8 @@ void AutuinoTransportNRF24L01::start() {
 #ifdef DEBUG
 	dump();
 #endif	
-
+    //delay 10 seconds after start to avoid transmission errors
+    delay(10000);
 }
 
 void AutuinoTransportNRF24L01::setTransmissionStatusPin(int pin) {
@@ -307,48 +308,53 @@ bool AutuinoTransportNRF24L01::sendData(uint8_t protpacket, uint16_t sourcenodea
 }
 
 void AutuinoTransportNRF24L01::setNetworkId(uint64_t networkid) {
-	EEPROM.put(EEPROM_START_NETID, networkid);
+	//EEPROM.put(EEPROM_START_NETID, networkid);
+	this->networkid = networkid;
 }
 
 uint64_t AutuinoTransportNRF24L01::getNetworkId() {	
-	uint64_t networkid;
-	EEPROM.get(EEPROM_START_NETID,networkid);
-		
-	return networkid;  	
+	//uint64_t networkid;
+	//EEPROM.get(EEPROM_START_NETID,networkid);	
+	return this->networkid;  	
 }
 
 void AutuinoTransportNRF24L01::setNetworkSecretKey(uint8_t* networksecretkey) {
-	for(int i=0;i<NETWORK_SECRET_SIZE;i++) {
-	   EEPROM.write(EEPROM_START_NETSECRET+i, networksecretkey[i]);
-	}
+	//for(int i=0;i<NETWORK_SECRET_SIZE;i++) {
+	//   EEPROM.write(EEPROM_START_NETSECRET+i, networksecretkey[i]);
+	//}
+	this->networksecretkey = networksecretkey;
 }
 
 void AutuinoTransportNRF24L01::getNetworkSecretKey(uint8_t* secretkey) {
-	for(int i=0;i<NETWORK_SECRET_SIZE;i++) {
-	   secretkey[i] = EEPROM.read(EEPROM_START_NETSECRET+i);
-	} 
+	//for(int i=0;i<NETWORK_SECRET_SIZE;i++) {
+	//   secretkey[i] = EEPROM.read(EEPROM_START_NETSECRET+i);
+	//}
+	memcpy(secretkey,this->networksecretkey,NETWORK_SECRET_SIZE);
 }
 
 void AutuinoTransportNRF24L01::setNodeAddress(uint16_t nodeaddress) {
-	EEPROM.put(EEPROM_START_NODE,nodeaddress);
+	this->nodeaddress = nodeaddress;
+	//EEPROM.put(EEPROM_START_NODE,nodeaddress);
 }
 
 uint16_t AutuinoTransportNRF24L01::getNodeAddress() {
-	uint16_t nodeaddress;
-	EEPROM.get(EEPROM_START_NODE,nodeaddress);
-	return nodeaddress;
+	//uint16_t nodeaddress;
+	//EEPROM.get(EEPROM_START_NODE,nodeaddress);
+	return this->nodeaddress;
 }
 
 void AutuinoTransportNRF24L01::setMACAddress(uint8_t* newaddress) {
-	for(int i=0;i<MAC_ADDRESS_SIZE;i++) {
-	   EEPROM.write(EEPROM_START_MAC+i, newaddress[i]);
-	}
+	//for(int i=0;i<MAC_ADDRESS_SIZE;i++) {
+	//   EEPROM.write(EEPROM_START_MAC+i, newaddress[i]);
+	//}
+	this->macaddress = newaddress;
 }
 
 void AutuinoTransportNRF24L01::getMACAddress(uint8_t* newaddress) {
-	for(int i=0;i<MAC_ADDRESS_SIZE;i++) {
-	   newaddress[i] = EEPROM.read(EEPROM_START_MAC+i);
-	}
+	//for(int i=0;i<MAC_ADDRESS_SIZE;i++) {
+	//   newaddress[i] = EEPROM.read(EEPROM_START_MAC+i);
+	//}
+	memcpy(newaddress,this->macaddress,MAC_ADDRESS_SIZE);
 }
 
 uint64_t AutuinoTransportNRF24L01::getRadioAddress() {
@@ -497,6 +503,15 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 		Serial.println(F("<<<"));
 #endif	
 
+		receipt_state.packetnumber = 0;
+		receipt_state.datapacketreceived = false;
+		receipt_state.firstpacketreceived = false;
+		receipt_state.lastpacketreceived = false;
+		receipt_state.segmentreceived = false;
+		receipt_state.sourcenodeaddressdefined = false;
+		receipt_state.segmentreceivedinerror = false;
+		receipt_state.sourcenodeaddress = 0;		
+
 		//Check the notification that just arrived and see if it maps to any function of our device
 		//if it does, raise the event to be dealt with
 		bool foundmapper = false;
@@ -532,36 +547,23 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 			if(executefunction) {
 				executefunction(receipt_state.segment.header.sourcenodeaddress,functionmappers[mapperindex].maptofunctionid,(notificationdata*)data);
 			}
-		}
-
-       // if(receivefunc) {
-			//receivefunc(receipt_state.segment.header.sourcenodeaddress,receipt_state.segment.header.datasize,data);			
-			//notificationreceivefunc(receipt_state.segment.header.sourcenodeaddress,(notificationdata*)data);
-		//}
-		receipt_state.packetnumber = 0;
-		receipt_state.datapacketreceived = false;
-		receipt_state.firstpacketreceived = false;
-		receipt_state.lastpacketreceived = false;
-		receipt_state.segmentreceived = false;
-		receipt_state.sourcenodeaddressdefined = false;
-		receipt_state.segmentreceivedinerror = false;
-		receipt_state.sourcenodeaddress = 0;		
 		
-		//collect the destinations that will receive the notification because of the subscriptions
-		receipt_state.processdestinations=true;
-		receipt_state.numberofdestinations=0;
-		if(numberofsubscriptions) {
-			receipt_state.numberofdestinations=0;		
-			receipt_state.destinationaddresses = 0;		
-			for(int i=0;i<numberofsubscriptions;i++) {
-			   notificationdata* tmp = (notificationdata*)data;
-			   if((subscriptions[i].notificationtype==tmp->notificationtype)&&(subscriptions[i].functionid==tmp->functionid)) {
-				  receipt_state.numberofdestinations = subscriptions[i].numberofdestinations;
-				  receipt_state.destinationaddresses = subscriptions[i].destinationaddresses;
-			   }
+			//collect the destinations that will receive the notification because of the subscriptions
+			receipt_state.processdestinations=true;
+			receipt_state.numberofdestinations=0;
+			if(numberofsubscriptions) {
+				receipt_state.numberofdestinations=0;		
+				receipt_state.destinationaddresses = 0;		
+				for(int i=0;i<numberofsubscriptions;i++) {
+					notificationdata* tmp = (notificationdata*)data;
+					if((subscriptions[i].notificationtype==tmp->notificationtype)&&(subscriptions[i].functionid==functionmappers[mapperindex].maptofunctionid)) {
+						receipt_state.numberofdestinations = subscriptions[i].numberofdestinations;
+						receipt_state.destinationaddresses = subscriptions[i].destinationaddresses;
+					}	
+				}
 			}
+			receipt_state.numberdestinationsprocessed=0;		
 		}
-        receipt_state.numberdestinationsprocessed=0;		
 		
 		if(transmissionstatuspin>=0) {
 			digitalWrite(transmissionstatuspin,LOW);
@@ -586,7 +588,7 @@ void AutuinoTransportNRF24L01::processSubscriptions() {
 			Serial.print(receipt_state.destinationaddresses[i]);
 			Serial.print(",");
 #endif			
-			//executeFunction(getNodeAddress(), receipt_state.destinationaddresses[i], tmpdata->notificationtype, tmpdata->functionid, tmpdata->notificationunit, tmpdata->notificationvalue);
+			executeFunction(getNodeAddress(), receipt_state.destinationaddresses[i], tmpdata->notificationtype, tmpdata->functionid, tmpdata->notificationunit, tmpdata->notificationvalue);
 		}
 #ifdef DEBUG		
 		Serial.println("");
@@ -603,13 +605,23 @@ void AutuinoTransportNRF24L01::setRemoteToLocalFunctionMapping(uint16_t numfunct
 	numberoffunctionmappers = numfunctionmapper;
 }
 
-void AutuinoTransportNRF24L01::addFunctionMapperItem(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid) {
-	numberoffunctionmappers++;
-	realloc(functionmappers,sizeof(functionmapper)*numberoffunctionmappers);
-	functionmappers[numberoffunctionmappers-1].sourcenodeaddress = sourcenodeaddress;
-	functionmappers[numberoffunctionmappers-1].sourcenotificationtype = notificationtype;
-	functionmappers[numberoffunctionmappers-1].sourcefunctionid = functionid;
-	functionmappers[numberoffunctionmappers-1].maptofunctionid = maptofunctionid;
+void AutuinoTransportNRF24L01::addRemoteToLocalFunctionMapping(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid) {
+	this->numberoffunctionmappers++;
+	this->functionmappers = (functionmapper*)realloc(this->functionmappers,sizeof(functionmapper)*this->numberoffunctionmappers);
+	this->functionmappers[this->numberoffunctionmappers-1].sourcenodeaddress = sourcenodeaddress;
+	this->functionmappers[this->numberoffunctionmappers-1].sourcenotificationtype = notificationtype;
+	this->functionmappers[this->numberoffunctionmappers-1].sourcefunctionid = functionid;
+	this->functionmappers[this->numberoffunctionmappers-1].maptofunctionid = maptofunctionid;
+}
+
+void AutuinoTransportNRF24L01::addFunctionSubscription(uint16_t notificationtype, uint8_t functionid, uint16_t destination) {
+	this->numberofsubscriptions++;
+	this->subscriptions = (functionsubscription*)realloc(this->subscriptions,sizeof(functionsubscription)*this->numberofsubscriptions);
+	this->subscriptions[this->numberofsubscriptions-1].notificationtype = notificationtype;
+	this->subscriptions[this->numberofsubscriptions-1].functionid = functionid;
+	this->subscriptions[this->numberofsubscriptions-1].numberofdestinations = 1;
+	this->subscriptions[this->numberofsubscriptions-1].destinationaddresses = (uint16_t*)realloc(this->subscriptions[numberofsubscriptions-1].destinationaddresses,sizeof(uint16_t));
+	memcpy(this->subscriptions[numberofsubscriptions-1].destinationaddresses,&destination,sizeof(uint16_t));
 }
 
 //Triggers are called from a functionid of the device. Any matches between the notificationtype from the message and functionid of the device will trigger a message to the
@@ -862,6 +874,28 @@ void AutuinoTransportNRF24L01::gethmacsha256(uint8_t* hash, uint8_t protpacket, 
 	hash = sha256.resultHmac();
 }
 */
+
+/*
+  Sha256Class Sha256;
+  Serial.println(1);
+  uint8_t *hash;
+  Serial.println(2);
+  Sha256.initHmac(hmacKey,20); // key, and length of key in bytes
+  Serial.println(3);  
+  uint8_t msg[] = {"this is a message"};
+  for(int i = 0;i<17;i++) {
+    Sha256.write(msg[i]);
+  }
+  Serial.println(4);  
+  hash = Sha256.resultHmac(); 
+  Serial.println(5);   
+  Serial.print("HASH: ");
+  for(int i = 0;i<32;i++) {
+    Serial.print("0x");
+    Serial.print(hash[i],HEX);
+    Serial.print(" ");  
+  }
+*/  
 
 
 

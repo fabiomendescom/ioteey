@@ -598,7 +598,8 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
         void executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint32_t value);
         void setFunctionSubscriptions(uint16_t numsubscription, functionsubscription* subscription);   
         void setRemoteToLocalFunctionMapping(uint16_t numfunctionmapper, functionmapper* functionmapper);
-        void addFunctionMapperItem(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid);
+        void addRemoteToLocalFunctionMapping(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid);
+		void addFunctionSubscription(uint16_t notificationtype, uint8_t functionid, uint16_t destination);
 
 		//void gethmacsha256(uint8_t* hash, uint8_t protpacket, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t handshakeinfo);				
 		//void buildDistanceRequestSegment(segment_dist_request* request, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t* signature);
@@ -624,6 +625,10 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		uint8_t _cs;
 		uint8_t _paLevel;
 		uint8_t _channel;
+		uint16_t nodeaddress=-1;
+		uint64_t networkid=-1;
+		uint8_t* networksecretkey=nullptr;
+		uint8_t* macaddress=nullptr;
 		int transmissionstatuspin = -1;
 		int deviceerrorstatuspin = -1;
 		state_receive receipt_state;	
