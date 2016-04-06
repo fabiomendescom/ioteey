@@ -12,8 +12,13 @@ void functionExecuted(uint16_t sourceaddress, uint8_t functionid, notificationda
     Serial.println(notification->functionid);        
     Serial.print("Notification unit.............: ");
     Serial.println(notification->notificationunit);        
+    Serial.print("Notification value size.......: ");
+    Serial.println(notification->notificationvaluesize);        
     Serial.print("Notification Value............: ");
-    Serial.println(notification->notificationvalue);     
+    for(int i=0;i<notification->notificationvaluesize;i++) {
+        Serial.print(notification->notificationvalue[i],DEC);
+        Serial.print(":");      
+    }   
     Serial.println("");
 }
 
@@ -66,7 +71,8 @@ void setup() {
 void loop() {
   if(millis()-timer > 25000) {
     timer=millis();
-    radio.executeFunction(nodeaddress,radio2address,10,1,1,433);
+    uint8_t value[3] = {'A','B','C'};
+    radio.executeFunction(nodeaddress,radio2address,10,1,1,3,value);
   }
   radio.networkProcess();
   //Serial.print("RAM: ");

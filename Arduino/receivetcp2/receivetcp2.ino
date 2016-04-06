@@ -19,8 +19,13 @@ void functionExecuted(uint16_t sourceaddress, uint8_t functionid, notificationda
     Serial.println(notification->functionid);        
     Serial.print("Notification unit.............: ");
     Serial.println(notification->notificationunit);        
+    Serial.print("Notification value size.......: ");
+    Serial.println(notification->notificationvaluesize);        
     Serial.print("Notification Value............: ");
-    Serial.println(notification->notificationvalue);     
+    for(int i=0;i<notification->notificationvaluesize;i++) {
+        Serial.print(notification->notificationvalue[i]);
+        Serial.print(":");      
+    }
     Serial.println("");
 }
 

@@ -116,7 +116,7 @@ int AutuinoTransportNRF24L01::totalPackets(segment_data_send* segment) {
   return ceil((double)bytestosendafterheader / (double)DATACAPACITYINEXTENSION) + 1;
 }
 
-uint16_t AutuinoTransportNRF24L01::buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint32_t value) {
+uint16_t AutuinoTransportNRF24L01::buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value) {
 	int byteposition = 0;
 	int memsize = 2;
 	memcpy((void*)(effectivedata+byteposition),(void*)&sourcenodeaddress,memsize); //move 2 bytes (uint16_t) for sourcenodeaddress
@@ -130,10 +130,13 @@ uint16_t AutuinoTransportNRF24L01::buildEffectiveDataPart(uint8_t* effectivedata
 	memsize = 1;
 	memcpy((void*)(effectivedata+byteposition),(void*)&notificationunit,memsize); //notification unit
 	byteposition = byteposition + memsize;
-	memsize = 4;
-	memcpy((void*)(effectivedata+byteposition),(void*)&value,memsize); //value
-	
-	return byteposition + memsize + 1;
+	memsize = 2;
+	memcpy((void*)(effectivedata+byteposition),(void*)&notificationvaluesize,memsize); //notification value size
+	byteposition = byteposition + memsize;
+	memsize = notificationvaluesize;
+	memcpy((void*)(effectivedata+byteposition),(void*)value,memsize); //value
+		
+	return byteposition + memsize;
 }
 
 /*
@@ -386,11 +389,11 @@ uint8_t AutuinoTransportNRF24L01::receive(void* data) {
 //	return (notificationdata*) data;
 //}
 
-void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint32_t value) {
+void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value) {
 	uint8_t effectivedata[MAX_DATA_SIZE];
 	uint16_t effectivedatasize;
-	
-	//if source and destination are this is a local function call. Call the method. If not, send to radio
+		
+	//if source and destination are equal this is a local function call. Call the method. If not, send to radio
 	if(sourcenodeaddress==destinationnodeaddress) {	
 		//call the notificationreceivefunction if exists
 		if(executefunction) {	
@@ -399,11 +402,14 @@ void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint1
 			tmpdata->notificationtype = notificationtype;
 			tmpdata->functionid = functionid;
 			tmpdata->notificationunit = notificationunit;
-			tmpdata->notificationvalue = value;	
+			tmpdata->notificationvaluesize = notificationvaluesize;
+			tmpdata->notificationvalue = (uint8_t*)malloc(notificationvaluesize);
+			memcpy((void*)tmpdata->notificationvalue,(void*)value,notificationvaluesize);	
 			executefunction(sourcenodeaddress,functionid,tmpdata);
 		}	
 	} else {	    
-		effectivedatasize = buildEffectiveDataPart(effectivedata, sourcenodeaddress, notificationtype,functionid,notificationunit,value);
+		effectivedatasize = buildEffectiveDataPart(effectivedata, sourcenodeaddress, notificationtype,functionid,notificationunit,notificationvaluesize, value);
+			
 		if(sendData(1, sourcenodeaddress, destinationnodeaddress,32, effectivedata, effectivedatasize)) {
 #ifdef DEBUG			
 			Serial.print(millis());
@@ -421,8 +427,8 @@ void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint1
 }	 
 
 //this is a local call since not source and destination are defined.
-void AutuinoTransportNRF24L01::executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint32_t value) {
-	executeFunction(getNodeAddress(),getNodeAddress(),notificationtype,functionid,notificationunit,value);	
+void AutuinoTransportNRF24L01::executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value) {
+	executeFunction(getNodeAddress(),getNodeAddress(),notificationtype,functionid,notificationunit,notificationvaluesize, value);	
 }	
 
 void AutuinoTransportNRF24L01::processIncomingMessages() {
@@ -531,7 +537,8 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 			Serial.print(F("=="));
 			Serial.println(tmpdata->functionid);
 #endif			
-			if((functionmappers[i].sourcenodeaddress==receipt_state.segment.header.sourcenodeaddress)&&(functionmappers[i].sourcenotificationtype==tmpdata->notificationtype)&&(functionmappers[i].sourcefunctionid==tmpdata->functionid)) {
+			if((functionmappers[i].sourcenodeaddress==receipt_state.segment.header.sourcenodeaddress)&&(functionmappers[i].sourcefunctionid==tmpdata->functionid)) {
+			//if((functionmappers[i].sourcenodeaddress==receipt_state.segment.header.sourcenodeaddress)&&(functionmappers[i].sourcenotificationtype==tmpdata->notificationtype)&&(functionmappers[i].sourcefunctionid==tmpdata->functionid)) {
 				foundmapper=true;
 				mapperindex = i;
 				break;
@@ -556,7 +563,8 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 				receipt_state.destinationaddresses = 0;		
 				for(int i=0;i<numberofsubscriptions;i++) {
 					notificationdata* tmp = (notificationdata*)data;
-					if((subscriptions[i].notificationtype==tmp->notificationtype)&&(subscriptions[i].functionid==functionmappers[mapperindex].maptofunctionid)) {
+					if((subscriptions[i].functionid==functionmappers[mapperindex].maptofunctionid)) {
+					//if((subscriptions[i].notificationtype==tmp->notificationtype)&&(subscriptions[i].functionid==functionmappers[mapperindex].maptofunctionid)) {
 						receipt_state.numberofdestinations = subscriptions[i].numberofdestinations;
 						receipt_state.destinationaddresses = subscriptions[i].destinationaddresses;
 					}	
@@ -588,7 +596,7 @@ void AutuinoTransportNRF24L01::processSubscriptions() {
 			Serial.print(receipt_state.destinationaddresses[i]);
 			Serial.print(",");
 #endif			
-			executeFunction(getNodeAddress(), receipt_state.destinationaddresses[i], tmpdata->notificationtype, tmpdata->functionid, tmpdata->notificationunit, tmpdata->notificationvalue);
+			executeFunction(getNodeAddress(), receipt_state.destinationaddresses[i], tmpdata->notificationtype, tmpdata->functionid, tmpdata->notificationunit, tmpdata->notificationvaluesize, tmpdata->notificationvalue);
 		}
 #ifdef DEBUG		
 		Serial.println("");

@@ -19,8 +19,13 @@ void functionExecuted(uint16_t sourceaddress, uint8_t functionid, notificationda
     Serial.println(notification->functionid);        
     Serial.print("Notification unit.............: ");
     Serial.println(notification->notificationunit);        
+    Serial.print("Notification value size.......: ");
+    Serial.println(notification->notificationvaluesize);        
     Serial.print("Notification Value............: ");
-    Serial.println(notification->notificationvalue);     
+    for(int i=0;i<notification->notificationvaluesize;i++) {
+        Serial.print(notification->notificationvalue[i],DEC);
+        Serial.print(":");      
+    }   
     Serial.println("");
 }
 
@@ -60,16 +65,6 @@ void setup() {
   
   radio.addRemoteToLocalFunctionMapping(radio1address,10,1,3);
   radio.addFunctionSubscription(10, 3, radio3address);
-     
-   //functionsubscription* triggervar;
-   //triggervar = (functionsubscription*)malloc(sizeof(functionsubscription));
-   //triggervar[0].destinationaddresses = (uint16_t*)malloc(sizeof(uint16_t));
-   //triggervar[0].notificationtype = 10;
-   //triggervar[0].functionid = 1;
-   //triggervar[0].numberofdestinations = 1;
-   //triggervar[0].destinationaddresses[0] = 48;  
-
-   //radio.setFunctionSubscriptions(1,triggervar);
 
   radio.start();  
   Serial.println("Radio Started");
