@@ -538,8 +538,8 @@ struct notificationdata {
 	uint16_t notificationtype;	
 	uint8_t functionid;
 	uint8_t notificationunit;
-	uint16_t notificationvaluesize;
-	uint8_t* notificationvalue;
+	uint8_t notificationvaluesize;
+	uint8_t notificationvalue[255]; //you can send a message of a maximum of 255 bytes
 };
 
 struct functionmapper {
@@ -583,7 +583,7 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
         uint64_t getRadioAddress();		 
         void setTransmissionStatusPin(int pin);
         void setDeviceErrorStatusPin(int pin);
-        uint16_t buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value);
+        uint16_t buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value);
 		void buildDataSendSegment(segment_data_send* request, uint8_t protpacket, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t signaturesize, uint8_t* effectivedata, uint16_t effectivedatasize);
 		void getDataFromSegment(uint8_t* data, segment_data_send* segment);
 		bool available(uint16_t *to);
@@ -597,8 +597,9 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		void processErrors();			        
         void networkProcess();  
         void setExecuteFunction(void(*executefunc)(uint16_t,uint8_t,notificationdata*));        
-        void executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value);
-        void executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value);
+        void executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value);
+        void executeFunction(uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value);
+        void executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value);
         void setFunctionSubscriptions(uint16_t numsubscription, functionsubscription* subscription);   
         void setRemoteToLocalFunctionMapping(uint16_t numfunctionmapper, functionmapper* functionmapper);
         void addRemoteToLocalFunctionMapping(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid);

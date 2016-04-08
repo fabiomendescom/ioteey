@@ -71,8 +71,8 @@ void setup() {
 void loop() {
   if(millis()-timer > 25000) {
     timer=millis();
-    uint8_t value[3] = {'A','B','C'};
-    radio.executeFunction(nodeaddress,radio2address,10,1,1,3,value);
+    uint8_t value[28] = {'A','B','C','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','A'};
+    radio.executeFunction(radio2address,10,1,1,28,value);
   }
   radio.networkProcess();
   //Serial.print("RAM: ");

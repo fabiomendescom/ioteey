@@ -23,7 +23,7 @@ void functionExecuted(uint16_t sourceaddress, uint8_t functionid, notificationda
     Serial.println(notification->notificationvaluesize);        
     Serial.print("Notification Value............: ");
     for(int i=0;i<notification->notificationvaluesize;i++) {
-        Serial.print(notification->notificationvalue[i],DEC);
+        Serial.print(notification->notificationvalue[i],HEX);
         Serial.print(":");      
     }   
     Serial.println("");

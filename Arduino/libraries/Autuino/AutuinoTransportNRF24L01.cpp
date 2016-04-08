@@ -116,7 +116,7 @@ int AutuinoTransportNRF24L01::totalPackets(segment_data_send* segment) {
   return ceil((double)bytestosendafterheader / (double)DATACAPACITYINEXTENSION) + 1;
 }
 
-uint16_t AutuinoTransportNRF24L01::buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value) {
+uint16_t AutuinoTransportNRF24L01::buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value) {
 	int byteposition = 0;
 	int memsize = 2;
 	memcpy((void*)(effectivedata+byteposition),(void*)&sourcenodeaddress,memsize); //move 2 bytes (uint16_t) for sourcenodeaddress
@@ -130,7 +130,7 @@ uint16_t AutuinoTransportNRF24L01::buildEffectiveDataPart(uint8_t* effectivedata
 	memsize = 1;
 	memcpy((void*)(effectivedata+byteposition),(void*)&notificationunit,memsize); //notification unit
 	byteposition = byteposition + memsize;
-	memsize = 2;
+	memsize = 1;
 	memcpy((void*)(effectivedata+byteposition),(void*)&notificationvaluesize,memsize); //notification value size
 	byteposition = byteposition + memsize;
 	memsize = notificationvaluesize;
@@ -389,7 +389,11 @@ uint8_t AutuinoTransportNRF24L01::receive(void* data) {
 //	return (notificationdata*) data;
 //}
 
-void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value) {
+void AutuinoTransportNRF24L01::executeFunction(uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value) {
+    executeFunction(getNodeAddress(),destinationnodeaddress,notificationtype,functionid,notificationunit,notificationvaluesize, value);
+}
+
+void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value) {
 	uint8_t effectivedata[MAX_DATA_SIZE];
 	uint16_t effectivedatasize;
 		
@@ -403,7 +407,7 @@ void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint1
 			tmpdata->functionid = functionid;
 			tmpdata->notificationunit = notificationunit;
 			tmpdata->notificationvaluesize = notificationvaluesize;
-			tmpdata->notificationvalue = (uint8_t*)malloc(notificationvaluesize);
+			//tmpdata->notificationvalue = (uint8_t*)malloc(notificationvaluesize);
 			memcpy((void*)tmpdata->notificationvalue,(void*)value,notificationvaluesize);	
 			executefunction(sourcenodeaddress,functionid,tmpdata);
 		}	
@@ -427,7 +431,7 @@ void AutuinoTransportNRF24L01::executeFunction(uint16_t sourcenodeaddress, uint1
 }	 
 
 //this is a local call since not source and destination are defined.
-void AutuinoTransportNRF24L01::executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint16_t notificationvaluesize, uint8_t* value) {
+void AutuinoTransportNRF24L01::executeFunction(uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value) {
 	executeFunction(getNodeAddress(),getNodeAddress(),notificationtype,functionid,notificationunit,notificationvaluesize, value);	
 }	
 
@@ -522,7 +526,9 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 		//if it does, raise the event to be dealt with
 		bool foundmapper = false;
 		uint8_t mapperindex = -1;
+
 		notificationdata* tmpdata = (notificationdata*)data;
+		
 		for(int i=0;i<numberoffunctionmappers;i++) {
 			//check for a match of the source data coming and mapper to know which function id to trigger
 #ifdef DEBUG			
