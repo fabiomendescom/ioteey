@@ -5,6 +5,11 @@
 #include "RF24_config.h"
 #include <EEPROM.h>
 #include "AutuinoPowerSupply.h"
+#include <avr/interrupt.h>  
+#include <avr/io.h>
+
+//http://arduinomega.blogspot.com/p/arduino-code.html <- base code for the blinking lights interrupts
+// http://www.cyberrailguru.com/software-development/interrupts-in-c-and-avr <- great job on interrupts in C++
 
 /*
  
@@ -557,6 +562,7 @@ struct functionsubscription {
 };
 
 
+extern "C" void TIMER2_COMPA_vect(void)  __attribute__ ((signal));
 
 class AutuinoTransportNRF24L01 : public AutuinoTransport
 {
@@ -566,6 +572,7 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		void powerDown();	
 		void dump();		
 		void start();
+		void allSet();
 		void setSigningAlgorithm(AutuinoSigning* signingobject);
 		void setEncryptionAlgorithm(AutuinoEncryption* encryptionobject);
 		void setAutuinoPowerSupply(AutuinoPowerSupply* powersupply);
@@ -582,7 +589,6 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
         //Radio address is obtained by adding the network id to the node id
         uint64_t getRadioAddress();		 
         void setTransmissionStatusPin(int pin);
-        void setDeviceErrorStatusPin(int pin);
         uint16_t buildEffectiveDataPart(uint8_t* effectivedata, uint16_t sourcenodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value);
 		void buildDataSendSegment(segment_data_send* request, uint8_t protpacket, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t signaturesize, uint8_t* effectivedata, uint16_t effectivedatasize);
 		void getDataFromSegment(uint8_t* data, segment_data_send* segment);
@@ -594,7 +600,9 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
         void processIncomingMessages();
 		void processSegmentReceipt();
 		void processSubscriptions();
-		void processErrors();			        
+		void processErrors();	
+		void checkIfPairingRequired();
+		void checkReadyLed();				        
         void networkProcess();  
         void setExecuteFunction(void(*executefunc)(uint16_t,uint8_t,notificationdata*));        
         void executeFunction(uint16_t sourcenodeaddress, uint16_t destinationnodeaddress, uint16_t notificationtype, uint8_t functionid, uint8_t notificationunit, uint8_t notificationvaluesize, uint8_t* value);
@@ -604,6 +612,12 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
         void setRemoteToLocalFunctionMapping(uint16_t numfunctionmapper, functionmapper* functionmapper);
         void addRemoteToLocalFunctionMapping(uint16_t sourcenodeaddress,uint16_t notificationtype,uint8_t functionid, uint8_t maptofunctionid);
 		void addFunctionSubscription(uint16_t notificationtype, uint8_t functionid, uint16_t destination);
+		void processTimerInterrupt();
+		friend void TIMER2_COMPA_vect();
+		volatile int resetTimerCount=130;		
+		volatile unsigned int ledState=0;
+		volatile unsigned int interruptCount=0;
+		volatile int transmissionstatuspin = 7;	 //For some reason, if I change this value through the method, the interrupt does not pick it up. Don't know why, so let's just set this to 7 by default	
 
 		//void gethmacsha256(uint8_t* hash, uint8_t protpacket, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t handshakeinfo);				
 		//void buildDistanceRequestSegment(segment_dist_request* request, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t* signature);
@@ -620,7 +634,7 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 #ifdef DEBUG  
         //void dump(segment_dist_request* segment);
         //void dump(segment_dist_response* segment);						
-		void dump(segment_data_send* segment);																
+		void dump(segment_data_send* segment);																		
 #endif
 	private:
 		bool radiostart();	
@@ -633,8 +647,6 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		uint64_t networkid=-1;
 		uint8_t* networksecretkey=nullptr;
 		uint8_t* macaddress=nullptr;
-		int transmissionstatuspin = -1;
-		int deviceerrorstatuspin = -1;
 		state_receive receipt_state;	
 		//void(*receivefunc)(uint16_t,uint16_t,uint8_t*);	
 		void(*executefunction)(uint16_t,uint8_t,notificationdata*)=nullptr;	
@@ -645,4 +657,6 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		AutuinoPowerSupply* powersupply=nullptr;
 		AutuinoSigning* _signingobject=nullptr;
 		AutuinoEncryption* _encryptionobject=nullptr;
+		long steadylightstart;
 };
+

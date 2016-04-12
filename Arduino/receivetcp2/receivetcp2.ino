@@ -54,7 +54,7 @@ void setup() {
   Serial.begin(9600);    
   Serial.println("Starting radio");
                     
-  radio = AutuinoTransportNRF24L01(8, 7, RF24_PA_LOW);
+  radio = AutuinoTransportNRF24L01(9, 10, RF24_PA_LOW);
   //radio.setTransmissionStatusPin(2);
   //radio.setDeviceErrorStatusPin(3);  
   radio.setMACAddress(macaddress);

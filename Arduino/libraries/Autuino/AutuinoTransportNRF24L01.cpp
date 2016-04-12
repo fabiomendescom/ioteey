@@ -1,6 +1,7 @@
 #include "AutuinoTransportNRF24L01.h"
 //#include "sha256.h"
 
+
 AutuinoTransportNRF24L01::AutuinoTransportNRF24L01(uint8_t ce, uint8_t cs, uint8_t paLevel, uint8_t channel)
 	:
 	AutuinoTransport(),
@@ -25,15 +26,22 @@ AutuinoTransportNRF24L01::AutuinoTransportNRF24L01(uint8_t ce, uint8_t cs, uint8
 }
 
 void AutuinoTransportNRF24L01::start() {
-	if(transmissionstatuspin>=0) {
-		pinMode(transmissionstatuspin, OUTPUT);
-	}
-	if(deviceerrorstatuspin>=0) {
-		pinMode(deviceerrorstatuspin, OUTPUT);
+	if(this->transmissionstatuspin>=0) {
+		pinMode(this->transmissionstatuspin, OUTPUT);
 	}	
-	if(deviceerrorstatuspin>=0) {
-		digitalWrite(deviceerrorstatuspin,HIGH);
-	}		
+	pinMode(9,OUTPUT);
+	pinMode(2,INPUT);
+	pinMode(A0,OUTPUT);
+
+	//Setup Timer2 to fire every 1ms
+
+	TCCR2B = 0x00;        //Disbale Timer2 while we set it up
+	TCNT2  = 130;         //Reset Timer Count to 130 out of 255
+	TIFR2  = 0x00;        //Timer2 INT Flag Reg: Clear Timer Overflow Flag
+	TIMSK2 = 0x01;        //Timer2 INT Reg: Timer2 Overflow Interrupt Enable
+	TCCR2A = 0x00;        //Timer2 Control Reg A: Normal port operation, Wave Gen Mode normal
+	TCCR2B = 0x05;        //Timer2 Control Reg B: Timer Prescaler set to 128
+	
 	while(!AutuinoTransportNRF24L01::radiostart()) {
 		delay(10000);
 	}
@@ -44,13 +52,19 @@ void AutuinoTransportNRF24L01::start() {
     delay(10000);
 }
 
-void AutuinoTransportNRF24L01::setTransmissionStatusPin(int pin) {
-   transmissionstatuspin = pin;
+void AutuinoTransportNRF24L01::allSet() {
+  steadylightstart=millis();
+  TCCR2B = 0x00;  
+
+  if(transmissionstatuspin>=0) {
+	digitalWrite(this->transmissionstatuspin,HIGH);
+  }
 }
 
-void AutuinoTransportNRF24L01::setDeviceErrorStatusPin(int pin) {
-   deviceerrorstatuspin = pin;
+void AutuinoTransportNRF24L01::setTransmissionStatusPin(int pin) {
+   this->transmissionstatuspin = pin;
 }
+
 
 //void AutuinoTransportNRF24L01::setReceiveFunction(void(*receivepacketfunc)(uint16_t,uint16_t,uint8_t*)) {
 //    receivefunc = receivepacketfunc;
@@ -60,17 +74,11 @@ void AutuinoTransportNRF24L01::setExecuteFunction(void(*executefunc)(uint16_t,ui
     executefunction = executefunc;
 }
 
-bool AutuinoTransportNRF24L01::radiostart() {
-	if(deviceerrorstatuspin>=0) {
-		digitalWrite(deviceerrorstatuspin,HIGH);
-	}		
+bool AutuinoTransportNRF24L01::radiostart() {	
 	// Start up the radio library
 	rf24.begin();
 
-	if (!rf24.isPVariant()) {
-		if(deviceerrorstatuspin>=0) {
-			digitalWrite(deviceerrorstatuspin,HIGH);
-		}		
+	if (!rf24.isPVariant()) {	
 		return false;
 	}
 	rf24.setAutoAck(1);
@@ -87,23 +95,12 @@ bool AutuinoTransportNRF24L01::radiostart() {
 	rf24.openReadingPipe(CURRENT_NODE_PIPE, (uint64_t)AutuinoTransportNRF24L01::getRadioAddress());
 	rf24.startListening();
 
-	if(deviceerrorstatuspin>=0) {
-		digitalWrite(deviceerrorstatuspin,LOW);
-	}
-			
 	return true;
 }
 
 void AutuinoTransportNRF24L01::powerUp() {
-	if(deviceerrorstatuspin>=0) {
-		digitalWrite(deviceerrorstatuspin,HIGH);
-	}		
-	
 	rf24.powerUp();
-	
-	if(deviceerrorstatuspin>=0) {
-		digitalWrite(deviceerrorstatuspin,LOW);
-	}			
+			
 	delay(3000);
 }
 
@@ -281,32 +278,17 @@ bool AutuinoTransportNRF24L01::sendData(uint8_t protpacket, uint16_t sourcenodea
 	 if(i==0) {  //first packet. Send header
 		ok = rf24.write(&datarequest.header, sizeof(datarequest.header), false);
 		if(!ok) {
-		   if(deviceerrorstatuspin>=0) {
-				digitalWrite(deviceerrorstatuspin,HIGH);
-		   }
 		   break;
 		}	    
 	 } else {
 		ok = rf24.write(&datarequest.data[i-1], sizeof(datarequest.data[i-1]), false);	    	    
 		if(!ok) {
-		   if(deviceerrorstatuspin>=0) {
-				digitalWrite(deviceerrorstatuspin,HIGH);
-		   }
 		   break;
 		}	
 	 }	
   }	
-  if(ok) {
-	if(deviceerrorstatuspin>=0) {
-		digitalWrite(deviceerrorstatuspin,LOW);
-	}  
-  }
   rf24.startListening();	
-  
-  if(transmissionstatuspin>=0) {
-	digitalWrite(transmissionstatuspin,LOW);
-  }
-  
+    
   return ok;
 }
 
@@ -442,9 +424,6 @@ void AutuinoTransportNRF24L01::processIncomingMessages() {
   		
 	//STATE: Packet available for receipt. NEXT STATE: Data received
 	if(available(&receiver)&&(receipt_state.processdestinations==false)) {
-		if(transmissionstatuspin>=0) {
-			digitalWrite(transmissionstatuspin,HIGH);
-		}		
 #ifdef DEBUG		
 		Serial.print(F("Data ready to be received on address: "));
 		Serial.print(receiver);  
@@ -484,9 +463,7 @@ void AutuinoTransportNRF24L01::processIncomingMessages() {
 		   receipt_state.packetnumber++;	
 		   memcpy(&receipt_state.segment.data[receipt_state.packetnumber-2],data,bytestoreceive);
 		}
-		if(transmissionstatuspin>=0) {
-			digitalWrite(transmissionstatuspin,LOW);
-		}	
+
 	}
 	
 }
@@ -495,9 +472,6 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 
 	// Data was fully and successfully received
 	if(receipt_state.segmentreceived) {
-		if(transmissionstatuspin>=0) {
-			digitalWrite(transmissionstatuspin,HIGH);
-		}		
 		uint8_t data[MAX_DATA_SIZE];
 		getDataFromSegment(data, &receipt_state.segment);
 #ifdef DEBUG
@@ -577,11 +551,7 @@ void AutuinoTransportNRF24L01::processSegmentReceipt() {
 				}
 			}
 			receipt_state.numberdestinationsprocessed=0;		
-		}
-		
-		if(transmissionstatuspin>=0) {
-			digitalWrite(transmissionstatuspin,LOW);
-		}			
+		}		
 	}
 
 }
@@ -648,9 +618,6 @@ void AutuinoTransportNRF24L01::setFunctionSubscriptions(uint16_t numsubscription
 void AutuinoTransportNRF24L01::processErrors() {
 	//Data was received in error
 	if(receipt_state.segmentreceivedinerror) {
-		if(deviceerrorstatuspin>=0) {
-			digitalWrite(deviceerrorstatuspin,HIGH);
-		}		
 		receipt_state.packetnumber = 0;
 		receipt_state.datapacketreceived = false;
 		receipt_state.firstpacketreceived = false;
@@ -659,10 +626,43 @@ void AutuinoTransportNRF24L01::processErrors() {
 		receipt_state.sourcenodeaddressdefined = false;
 		receipt_state.segmentreceivedinerror = false;
 		receipt_state.sourcenodeaddress = 0;				
-		if(deviceerrorstatuspin>=0) {
-			digitalWrite(deviceerrorstatuspin,LOW);
-		}		
 	}
+}
+
+void AutuinoTransportNRF24L01::checkIfPairingRequired() {  
+	 static long timestartpressed;
+	 static int pairrequested;
+	 static int paired;
+	 static long timestartpairing;
+     if((digitalRead(2)==HIGH)&&(!paired)) {
+		if(pairrequested==false) {
+			pairrequested=true;
+			timestartpressed=millis();
+		} else {
+			if((timestartpressed!=-1)&&(millis()-timestartpressed>3000)) {
+				digitalWrite(A0,HIGH);	
+				timestartpairing=millis();
+				paired=true;	
+			}
+		}      
+     } 
+     if(paired) {
+		if((timestartpairing!=-1)&&millis()-timestartpairing>10000) {
+			digitalWrite(A0,LOW);
+			paired=false;
+			pairrequested=false;
+			timestartpressed=-1;
+			timestartpairing=-1;
+		}
+	 }
+}
+
+void AutuinoTransportNRF24L01::checkReadyLed() {  
+  if(millis()-steadylightstart > 8000) {
+	  if(transmissionstatuspin>=0) {
+         digitalWrite(transmissionstatuspin,LOW);
+      }
+  }
 }
 
 void AutuinoTransportNRF24L01::networkProcess() {
@@ -682,6 +682,12 @@ void AutuinoTransportNRF24L01::networkProcess() {
 	} else if (turn==3) {
 		processErrors();
 		turn++;	
+	} else if (turn==4) {
+		checkIfPairingRequired();
+		turn++;
+	} else if (turn==5) {
+		checkReadyLed();
+		turn++;		
 	} else {
 		turn=0;
 	}
@@ -853,8 +859,33 @@ void AutuinoTransportNRF24L01::dump() {
 	Serial.println(F("--END DUMP--"));
 	Serial.println("");	
 }
+
 #endif
 
+
+void AutuinoTransportNRF24L01::processTimerInterrupt() {
+  interruptCount++;               //Increments the interrupt counter
+  if(interruptCount > 400){
+    ledState = !ledState;    //toggles the LED state
+    interruptCount = 0;           //Resets the interrupt counter
+	if(transmissionstatuspin>=0) {
+		digitalWrite(transmissionstatuspin,ledState); //For some reason, when I use transmissionstatuspin it goes unitialized even though I initalized it. So I initialized to 7
+	}
+  }
+}
+
+typedef
+  struct AutuinoTransportNRF24L01
+    AutuinoTransportNRF24L01;
+
+AutuinoTransportNRF24L01 AutuinoTransportNRF24L01Var; // Foo class for "external" use
+
+
+ISR(TIMER2_OVF_vect) {
+  AutuinoTransportNRF24L01Var.processTimerInterrupt(); 
+  TCNT2 = AutuinoTransportNRF24L01Var.resetTimerCount;           //Reset Timer to 130 out of 255
+  TIFR2 = 0x00;          //Timer2 INT Flag Reg: Clear Timer Overflow Flag
+};  
 
 /*
 void AutuinoTransportNRF24L01::gethmacsha256(uint8_t* hash, uint8_t protpacket, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t handshakeinfo) {

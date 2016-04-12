@@ -28,6 +28,8 @@ int freeRam () {
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 };
 
+  int incomingByte; 
+
   //Global for the network
   uint64_t netid = 0xA8A8E100000; 
   uint8_t networksecret[NETWORK_SECRET_SIZE] = {0x35,0x36,0x37,0x38,0x39,0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x30,0x31,0x0,0x0,0x0,0x0,0x0};
@@ -48,14 +50,13 @@ int freeRam () {
   
   AutuinoTransportNRF24L01 radio;
 
-void setup() {
-  pinMode(9,OUTPUT);
-  Serial.begin(9600);    
-  Serial.println("Starting radio");
+bool button = false;
 
-  radio = AutuinoTransportNRF24L01(8, 7, RF24_PA_LOW);
-  radio.setTransmissionStatusPin(2);
-  radio.setDeviceErrorStatusPin(3);
+void setup() { 
+  Serial.begin(9600);    
+
+  radio = AutuinoTransportNRF24L01(9, 10, RF24_PA_LOW);
+  radio.setTransmissionStatusPin(7);
   radio.setMACAddress(macaddress);
   radio.setNetworkId(netid);
   radio.setNetworkSecretKey(networksecret);
@@ -63,18 +64,20 @@ void setup() {
   radio.setExecuteFunction(&functionExecuted);
 
   radio.start();  
-  Serial.println("Radio Started");
-  Serial.println("Preparing to send message");
-  timer=millis();
+
+  radio.allSet();
+
+  timer=millis();  
 }
 
-void loop() {
-  if(millis()-timer > 25000) {
+void loop() { 
+  if(millis()-timer > 500000) {
     timer=millis();
     uint8_t value[28] = {'A','B','C','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','A'};
     radio.executeFunction(radio2address,10,1,1,28,value);
   }
   radio.networkProcess();
+  
   //Serial.print("RAM: ");
   //Serial.println(freeRam()); 
 }
