@@ -1,6 +1,15 @@
 #include "AutuinoTransportNRF24L01.h"
 //#include "sha256.h"
 
+//Define the static class to be used by the Timer interrupt
+AutuinoTransportNRF24L01 AutuinoTransportNRF24L01Var;
+
+//This is the interrupt that will be declared as a friend of the timer interrupt
+ISR(TIMER2_OVF_vect) {
+  AutuinoTransportNRF24L01Var.processTimerInterrupt(); 
+  TCNT2 = AutuinoTransportNRF24L01Var.resetTimerCount;           //Reset Timer to 130 out of 255
+  TIFR2 = 0x00;          //Timer2 INT Flag Reg: Clear Timer Overflow Flag
+};  
 
 AutuinoTransportNRF24L01::AutuinoTransportNRF24L01(uint8_t ce, uint8_t cs, uint8_t paLevel, uint8_t channel)
 	:
@@ -26,8 +35,8 @@ AutuinoTransportNRF24L01::AutuinoTransportNRF24L01(uint8_t ce, uint8_t cs, uint8
 }
 
 void AutuinoTransportNRF24L01::start() {
-	if(this->transmissionstatuspin>=0) {
-		pinMode(this->transmissionstatuspin, OUTPUT);
+	if(AutuinoTransportNRF24L01::transmissionstatuspin>=0) {
+		pinMode(AutuinoTransportNRF24L01::transmissionstatuspin, OUTPUT);
 	}	
 	pinMode(9,OUTPUT);
 	pinMode(2,INPUT);
@@ -35,6 +44,7 @@ void AutuinoTransportNRF24L01::start() {
 
 	//Setup Timer2 to fire every 1ms
 
+	AutuinoTransportNRF24L01::interrupttimertype=1;
 	TCCR2B = 0x00;        //Disbale Timer2 while we set it up
 	TCNT2  = 130;         //Reset Timer Count to 130 out of 255
 	TIFR2  = 0x00;        //Timer2 INT Flag Reg: Clear Timer Overflow Flag
@@ -54,15 +64,17 @@ void AutuinoTransportNRF24L01::start() {
 
 void AutuinoTransportNRF24L01::allSet() {
   steadylightstart=millis();
-  TCCR2B = 0x00;  
+  //TCCR2B = 0x00;
+  AutuinoTransportNRF24L01::interrupttimertype=0;  
 
-  if(transmissionstatuspin>=0) {
-	digitalWrite(this->transmissionstatuspin,HIGH);
+  if(AutuinoTransportNRF24L01::transmissionstatuspin>=0) {
+	digitalWrite(AutuinoTransportNRF24L01::transmissionstatuspin,HIGH);
   }
 }
 
 void AutuinoTransportNRF24L01::setTransmissionStatusPin(int pin) {
-   this->transmissionstatuspin = pin;
+   //initialize the static value 
+   AutuinoTransportNRF24L01::transmissionstatuspin = pin;
 }
 
 
@@ -260,8 +272,8 @@ void AutuinoTransportNRF24L01::buildDataSendSegment(segment_data_send* request, 
 //}
 
 bool AutuinoTransportNRF24L01::sendData(uint8_t protpacket, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t signaturesize, uint8_t* effectivedata, uint16_t effectivedatasize) {
-  if(transmissionstatuspin>=0) {
-	digitalWrite(transmissionstatuspin,HIGH);
+  if(AutuinoTransportNRF24L01::transmissionstatuspin>=0) {
+	digitalWrite(AutuinoTransportNRF24L01::transmissionstatuspin,HIGH);
   }
   
   segment_data_send datarequest;
@@ -635,32 +647,34 @@ void AutuinoTransportNRF24L01::checkIfPairingRequired() {
 	 static int paired;
 	 static long timestartpairing;
      if((digitalRead(2)==HIGH)&&(!paired)) {
-		if(pairrequested==false) {
+		if(pairrequested==false) {		
 			pairrequested=true;
 			timestartpressed=millis();
 		} else {
 			if((timestartpressed!=-1)&&(millis()-timestartpressed>3000)) {
+			    AutuinoTransportNRF24L01::interrupttimertype=2;				
 				digitalWrite(A0,HIGH);	
 				timestartpairing=millis();
-				paired=true;	
+				paired=true;				
 			}
 		}      
      } 
      if(paired) {
-		if((timestartpairing!=-1)&&millis()-timestartpairing>10000) {
+		if((timestartpairing!=-1)&&millis()-timestartpairing>10000) {				
 			digitalWrite(A0,LOW);
 			paired=false;
 			pairrequested=false;
 			timestartpressed=-1;
 			timestartpairing=-1;
+			AutuinoTransportNRF24L01::interrupttimertype=0;				
 		}
 	 }
 }
 
 void AutuinoTransportNRF24L01::checkReadyLed() {  
   if(millis()-steadylightstart > 8000) {
-	  if(transmissionstatuspin>=0) {
-         digitalWrite(transmissionstatuspin,LOW);
+	  if(AutuinoTransportNRF24L01::transmissionstatuspin>=0) {
+         digitalWrite(AutuinoTransportNRF24L01::transmissionstatuspin,LOW);
       }
   }
 }
@@ -864,28 +878,37 @@ void AutuinoTransportNRF24L01::dump() {
 
 
 void AutuinoTransportNRF24L01::processTimerInterrupt() {
-  interruptCount++;               //Increments the interrupt counter
-  if(interruptCount > 400){
-    ledState = !ledState;    //toggles the LED state
-    interruptCount = 0;           //Resets the interrupt counter
-	if(transmissionstatuspin>=0) {
-		digitalWrite(transmissionstatuspin,ledState); //For some reason, when I use transmissionstatuspin it goes unitialized even though I initalized it. So I initialized to 7
-	}
-  }
+
+  if(AutuinoTransportNRF24L01Var.interrupttimertype==1) {
+	AutuinoTransportNRF24L01Var.interruptCount++;               //Increments the interrupt counter
+	if(AutuinoTransportNRF24L01Var.interruptCount > 400){
+		AutuinoTransportNRF24L01Var.ledState = !AutuinoTransportNRF24L01Var.ledState;    //toggles the LED state
+		AutuinoTransportNRF24L01Var.interruptCount = 0;           //Resets the interrupt counter
+		if(AutuinoTransportNRF24L01::transmissionstatuspin>=0) {
+			digitalWrite(AutuinoTransportNRF24L01::transmissionstatuspin,AutuinoTransportNRF24L01Var.ledState); //For some reason, when I use transmissionstatuspin it goes unitialized even though I initalized it. So I initialized to 7
+		}
+	}	
+  } else if(AutuinoTransportNRF24L01Var.interrupttimertype==2) {
+	AutuinoTransportNRF24L01Var.interruptCount++;               //Increments the interrupt counter
+	if(AutuinoTransportNRF24L01Var.interruptCount > 400){
+	    //Serial.println(AutuinoTransportNRF24L01::interrupttimertype);		
+		AutuinoTransportNRF24L01Var.ledState = !AutuinoTransportNRF24L01Var.ledState;    //toggles the LED state
+		AutuinoTransportNRF24L01Var.interruptCount = 0;           //Resets the interrupt counter
+		if(AutuinoTransportNRF24L01::transmissionstatuspin>=0) {
+			digitalWrite(AutuinoTransportNRF24L01::transmissionstatuspin,AutuinoTransportNRF24L01Var.ledState); //For some reason, when I use transmissionstatuspin it goes unitialized even though I initalized it. So I initialized to 7
+		}
+	}	    
+  }	
 }
+
 
 typedef
   struct AutuinoTransportNRF24L01
     AutuinoTransportNRF24L01;
 
-AutuinoTransportNRF24L01 AutuinoTransportNRF24L01Var; // Foo class for "external" use
-
-
-ISR(TIMER2_OVF_vect) {
-  AutuinoTransportNRF24L01Var.processTimerInterrupt(); 
-  TCNT2 = AutuinoTransportNRF24L01Var.resetTimerCount;           //Reset Timer to 130 out of 255
-  TIFR2 = 0x00;          //Timer2 INT Flag Reg: Clear Timer Overflow Flag
-};  
+//We must define the static variable so it can be used by the timer interrupt
+int AutuinoTransportNRF24L01::transmissionstatuspin;
+int AutuinoTransportNRF24L01::interrupttimertype;
 
 /*
 void AutuinoTransportNRF24L01::gethmacsha256(uint8_t* hash, uint8_t protpacket, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t handshakeinfo) {

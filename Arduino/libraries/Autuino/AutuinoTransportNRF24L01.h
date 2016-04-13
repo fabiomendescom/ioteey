@@ -617,7 +617,8 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		volatile int resetTimerCount=130;		
 		volatile unsigned int ledState=0;
 		volatile unsigned int interruptCount=0;
-		volatile int transmissionstatuspin = 7;	 //For some reason, if I change this value through the method, the interrupt does not pick it up. Don't know why, so let's just set this to 7 by default	
+		static int transmissionstatuspin;	 //For some reason, if I change this value through the method, the interrupt does not pick it up. Don't know why, so let's just set this to 7 by default	
+		static int interrupttimertype;
 
 		//void gethmacsha256(uint8_t* hash, uint8_t protpacket, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t handshakeinfo);				
 		//void buildDistanceRequestSegment(segment_dist_request* request, uint8_t* sourcemacaddress, uint8_t* destmacaddress, uint16_t sourcenodeaddress, uint16_t destnodeaddress, uint8_t* signature);
@@ -659,4 +660,13 @@ class AutuinoTransportNRF24L01 : public AutuinoTransport
 		AutuinoEncryption* _encryptionobject=nullptr;
 		long steadylightstart;
 };
+
+
+
+
+
+
+
+
+
 

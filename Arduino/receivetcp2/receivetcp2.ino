@@ -50,6 +50,7 @@ void functionExecuted(uint16_t sourceaddress, uint8_t functionid, notificationda
   AutuinoTransportNRF24L01 radio;
 
 void setup() {
+  pinMode(2,INPUT);
   //pinMode(9,OUTPUT);  
   Serial.begin(9600);    
   Serial.println("Starting radio");
@@ -73,6 +74,7 @@ void setup() {
 }
 
 void loop() {
+      Serial.println(digitalRead(2));
   radio.networkProcess();
   //Serial.print("RAM: ");
   //Serial.println(freeRam());  
