@@ -1,5 +1,0 @@
-class AutuinoSigning
-{
-	public:
-		AutuinoSigning();	
-};

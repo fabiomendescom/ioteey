@@ -1,5 +1,0 @@
-class AutuinoEncryption
-{
-	public:
-		AutuinoEncryption();	
-};
