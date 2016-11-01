@@ -1,6 +1,15 @@
-# Project Title
+# Ioteey
 
-One Paragraph of project description goes here
+I wanted to build a set of libraries that would encapsulate the entire work of configuring, joining an IOT device to a network and executing using
+environments such as Samsung Smartthings. Ioteey was born. This shows how an ESP8266 device can have full capability of configuring itself.
+If it has not joined a network, it will configure itself as an Access Point allowing you to join it to a network and configure it without the 
+need to compile any code. Once you define a device type, it will know how:
+- To configure itself to join a WIFI network
+- Broadcast itself using mDNS so you can know its IP and port
+- Broadcast itself using SSDP and UPnP
+- To serve webpages. ("/" for main page, "/settings" for settings)
+
+This makes Ioteey a very configurable option on top of the well established ESP8266 platform.
 
 ## Getting Started
 
@@ -8,7 +17,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+- ESP8266 setup in Arduino IDE to get all ESP8266 libraries
 
 ```
 Give examples
@@ -16,9 +25,8 @@ Give examples
 
 ### Installing
 
-A step by step series of examples that tell you have to get a development env running
-
-Say what the step will be
+FOR ESP8266
+Install these files and change the File->Preferences->Sketchbook Location to point to the ESP8266 directory 
 
 ```
 Give the example
