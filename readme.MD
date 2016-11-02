@@ -30,14 +30,14 @@ IOTEEY was born.
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [CONTRIBUTING.md](https://gist.github.com/fabiomendescom) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Versioning
 
 
 ## Authors
 
-* **Fabio Mendes** - *Initial work* - [PurpleBooth](https://github.com/fabiomendescom)
+* **Fabio Mendes** - *Initial work* - [fabiomendescom](https://github.com/fabiomendescom)
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
