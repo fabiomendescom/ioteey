@@ -2,7 +2,10 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h> 
 #include <ESP8266WebServer.h>
-#include <PubSubClient.h> //obtained from https://github.com/knolleary/pubsubclient  <<<- Not used for now. I need to finish a complete MQTT implementation
+
+//TODO: DO MQTT LATER
+//#include <PubSubClient.h> //obtained from https://github.com/knolleary/pubsubclient  <<<- Not used for now. I need to finish a complete MQTT implementation
+
 //Hashmap below was obtained by creating a HashMap dir in libraries and pulling the following files in there
 //https://github.com/WiringProject/Wiring/blob/e0656394dcbc35586bcdac4e9a2b04082187f212/framework/cores/Common/Countable.h
 //I severely modified it into a specific library for ioteey
@@ -25,9 +28,10 @@
 #define SSIDMAXSIZE					120
 #define SSIDPASSWORDMAXSIZE			50
 
-#define MQTTSERVERSIZE				50
-#define MQTTUSERSIZE				50
-#define	MQTTPASSWORDSIZE			50
+//TODO: DO MQTT LATER
+//#define MQTTSERVERSIZE				50
+//#define MQTTUSERSIZE				50
+//#define	MQTTPASSWORDSIZE			50
 
 #define NUMBEROFTIMERS				10
 
@@ -37,7 +41,8 @@
 #define THINGNETWORKID				"04"
 #define THINGCODE					"30"
 
-#define THINGMQTTPORT 				"85"
+//TODO: DO MQTT LATER
+//#define THINGMQTTPORT 				"85"
 
 #define DEVICEID					"00"
 #define DEVICENAME					"02"
@@ -69,7 +74,8 @@
 //Connection types
 #define CONNTYPESERIAL				'S'
 #define CONNTYPETCP					'T'
-#define CONNTYPEMQTT				'M'
+//TODO: DO MQTT LATER
+//#define CONNTYPEMQTT				'M'
 #define CONNTYPEBLUETOOTH			'B'
 #define CONNTYPEBLANK				' '
 
@@ -95,6 +101,7 @@ class Ioteey {
 		const char* containerend =       "</div><br><br>";
 		const char* htmlbodyend =      "</body></html>";
 		
+		//templates for website responses
 		char* datetimestring = "%u/%u/%u %u:%u:%u";
 		char* save = "Save";
 		char* postsavesetting = "/savesettings";
@@ -123,22 +130,12 @@ class Ioteey {
 		bool wifidefinedincorrectly;
 		HashMap settings;	
 		bool wificonnected;
-		bool mqttconnected;
-		int numfailedmqtttries;
-		long timelastmqttfailedtry;
 		bool defaultsmodified;
 		strDateTime dateTime;
 		
-		
 		int getDeviceIdByName(const char* devicename);
 		
-		long timerstart[NUMBEROFTIMERS];
-		
-		char mqttserver[MQTTSERVERSIZE];
-		int mqttport;
-		char mqttuser[MQTTUSERSIZE];
-		char mqttpassword[MQTTPASSWORDSIZE];
-		
+		long timerstart[NUMBEROFTIMERS];		
 		bool dnsactive;
 		DNSServer dnsServer;
 		
@@ -151,7 +148,6 @@ class Ioteey {
 		int accesspointport;
 		bool isaccesspoint;
 		WiFiClient espClient;
-		PubSubClient client;	
 		bool reconnect();
 		int getKeyIndex(char* key);	
 		void saveValue(char* key, char* value);
@@ -171,14 +167,17 @@ class Ioteey {
 		String buildDeviceCommandValueParameterKey(int deviceid, int commandid, int commandvalueid, int commandvalueparameterid, const char* element);
 		String buildDeviceAttributeKey(int deviceid, int attributeid, const char* element);
 		String buildDeviceSettingKey(int deviceid, int settingid, const char* element);		
+		//TODO: DO MQTT LATER
+		//bool mqttconnected;
+		//int numfailedmqtttries;
+		//long timelastmqttfailedtry;		
+		//char mqttserver[MQTTSERVERSIZE];
+		//int mqttport;
+		//char mqttuser[MQTTUSERSIZE];
+		//char mqttpassword[MQTTPASSWORDSIZE];
+		//PubSubClient client;			
 	public:			
 		Ioteey();
-		void buildTopicTopLevel(char* topic);
-		void buildTopicThing(char* topic);
-		void buildTopicDevices(char* topic);
-		void buildTopicThingVar(char* topic, char* var);
-		void buildTopicDevicesVar(char* topic, char* var);		
-		void sendMessage(const char* means, const char* meansparms, const char* thingcode,const char sensororactuator, char* sensororactuatorid,const char* message, void (*callback)(char* response, char* error));
 		bool timerMillisPassed(long timer, long nummillis);
 		void readSettingsFromCharArray(const char* input); 
 		bool timerReset(long timer);
@@ -200,34 +199,19 @@ class Ioteey {
 		bool loadSettings();		
 		void resetSettingsToEEPROM(bool hard);
 		bool connectWIFI(String SSID,String password);
-		bool connectMQTT(String mqttserver,String mqttport,String mqttuser,String mqttpassword);
-		bool findAndConnectMQTT();
 		bool connectAll();
-		bool startWithMQTT();
 		void process();
 		void loadCallbackInfo(char* topic, byte* payload, unsigned int length);
-		int digitalConsistentRead(int pin);
-		
-		bool publishDeviceValue(char* deviceid,char* value);
-		
-		bool publishDeviceValueIfNeeded(char* deviceid,char* value);
-
-		bool deviceValueChanges(char* deviceid, char* value); //determines if this value causes a change on the previous value of this device. Used to ensure status is only sent on change not on every iteration of value		
-		
-		bool publishDeviceValue(char* deviceid,int value);
-		bool deviceValueChanges(char* deviceid, int value); //determines if this value causes a change on the previous value of this device. Used to ensure status is only sent on change not on every iteration of value		
-		bool publishDeviceValueIfNeeded(char* deviceid,int value);
-		
+		int digitalConsistentRead(int pin);				
 		void startDefaultSetting();
 		void setDefaultThingSetting(String settingkey, String settingvalue);
 		void setDefaultDeviceSetting(int deviceid, String settingkey, String settingvalue);
 		void setDefaultDeviceParameterSetting(int deviceid, int parameternumber, char* parameterid,  char* parametername, char* parametertype, char* parametervalue);	
 		void endSettingDefault();
 	
-		void setThingSetting(String settingkey,String settingvalue);					
-
         //Thing
         void createThing(); 
+		void setThingSetting(String settingkey,String settingvalue);					
         
         //Devices
 	    int addDevice(const char* devicename, const char* devicetype);        
@@ -238,7 +222,6 @@ class Ioteey {
 		String getDeviceName();
 		String getDeviceType(int deviceid);
 		String getDeviceType();
-
 
 		//Capabilities		
 		int getCapabilityCount(int deviceid);
@@ -348,6 +331,8 @@ class Ioteey {
 		int addSettingValue(int settingid, char* value);
 		String getSettingValue(int deviceid, int settingid);
 		String getSettingValue(int settingid);
+		bool deviceValueChanges(char* deviceid, int value); //determines if this value causes a change on the previous value of this device. Used to ensure status is only sent on change not on every iteration of value		
+		bool deviceValueChanges(char* deviceid, char* value); //determines if this value causes a change on the previous value of this device. Used to ensure status is only sent on change not on every iteration of value				
 
 		void handleGetAttribute(int deviceid, int attributeid);
 		void handleProcessCommand(int deviceid, int commandid, String command);
@@ -374,14 +359,29 @@ class Ioteey {
 		void saveSettingsToEEPROM();
 		String readSettingsIntoStringFromEEPROM();	
 		void readSettingsFromEEPROM();	
-
-		bool initializeThingWithMQTT();
-		bool publishDeviceValueWithMQTT(char* deviceid,char* value);
-		bool initializeDeviceWithMQTT(char* deviceid,char* initialvalue);  //sends the intial value for the device		
 		
 		void printstatus(char* status);
 		void printstatus(String status);		
-		void printstatus(bool status);  
+		void printstatus(bool status);
+		  
+		//TODO: DO MQTT LATER
+		//void buildTopicTopLevel(char* topic);
+		//void buildTopicThing(char* topic);
+		//void buildTopicDevices(char* topic);
+		//void buildTopicThingVar(char* topic, char* var);
+		//void buildTopicDevicesVar(char* topic, char* var);		
+		//void sendMessage(const char* means, const char* meansparms, const char* thingcode,const char sensororactuator, char* sensororactuatorid,const char* message, void (*callback)(char* response, char* error));
+		//bool initializeThingWithMQTT();
+		//bool publishDeviceValueWithMQTT(char* deviceid,char* value);
+		//bool initializeDeviceWithMQTT(char* deviceid,char* initialvalue);  //sends the intial value for the device		
+		//bool connectMQTT(String mqttserver,String mqttport,String mqttuser,String mqttpassword);
+		//bool findAndConnectMQTT();
+		//bool startWithMQTT();
+		//bool publishDeviceValue(char* deviceid,char* value);		
+		//bool publishDeviceValueIfNeeded(char* deviceid,char* value);
+		//bool publishDeviceValue(char* deviceid,int value);
+		//bool publishDeviceValueIfNeeded(char* deviceid,int value);
+		
 };
 
 

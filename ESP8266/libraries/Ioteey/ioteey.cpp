@@ -6,11 +6,13 @@ extern "C" {
 
 Ioteey::Ioteey() {	
 	this->wificonnected=false;
-	this->mqttconnected=false;
-	this->numfailedmqtttries=0;
 	this->wifidefined = false;
 	this->wifidefinedincorrectly = false;
 	this->dnsactive = false;
+
+	//TODO: DO MQTT LATER
+	//this->mqttconnected=false;
+	//this->numfailedmqtttries=0;	
 };
 
 void Ioteey::startDefaultSetting() {
@@ -1173,9 +1175,10 @@ bool Ioteey::connectAll() {
 					// Web server start					
 					this->server.begin(); 
 
-				    if(!this->findAndConnectMQTT()) {
-						this->timerReset(0); //start a timer to try to connect in the loop
-					};	
+					//TODO: DO MQTT LATER
+				    //if(!this->findAndConnectMQTT()) {
+					//	this->timerReset(0); //start a timer to try to connect in the loop
+					//};	
 				    		
 				} else {
 					//TODO: Technically this is supposed to be "T0088,"1" however, I think I want this trying indefinetely.
@@ -1238,8 +1241,9 @@ bool Ioteey::connected() {
 }
 
 bool Ioteey::connectWIFI(String SSID,String password) {
-	PubSubClient tclient(this->espClient);
-	this->client = tclient;
+	//TODO: DO MQTT LATER
+	//PubSubClient tclient(this->espClient);
+	//this->client = tclient;
 	WiFi.mode(WIFI_STA);   
 
 	int numtries = 0;
@@ -1263,7 +1267,7 @@ bool Ioteey::connectWIFI(String SSID,String password) {
 
 		delay(5000);
 		// Use the WiFi.status() function to check if the ESP8266
-		// is connected to a WiFi network.
+		// is connected to a WiFi                                                                                                             network.
 		while (WiFi.status() != WL_CONNECTED)
 		{  
 			Serial.print("Wait: ");
@@ -1286,26 +1290,6 @@ bool Ioteey::connectWIFI(String SSID,String password) {
 	Serial.println(WiFi.localIP());  	  
 };
 
-bool Ioteey::findAndConnectMQTT() {
-  int n = MDNS.queryService("http", "tcp"); // Send out query for esp tcp services
-  if (n == 0) {
-    Serial.println("no services found");
-  }
-  else {
-    for (int i = 0; i < n; ++i) {
-      if(MDNS.hostname(i)=="IOTEEYSERVICE" && MDNS.port(i)==1883) {
-	      Serial.println("Found IOTEEYSERVICE server.");	      
-		  if(this->connectMQTT(MDNS.IP(i).toString(),String(MDNS.port(i)),this->settings.getItem("T0086"),this->settings.getItem("T0087"))) {
-			//return true;
-		  } else {
-			//return false;
-		  };	      	      	      
-	  };
-    }
-  }
-  Serial.println();		
-};  
-
 bool Ioteey::timerMillisPassed(long timer, long nummillis) {
 	return (millis()-this->timerstart[timer])>nummillis;
 };
@@ -1321,12 +1305,15 @@ void Ioteey::process() {
 	}
 	
 	// if not connected to mqtt then try every 30 seconds
+	//TODO: DO MQTT LATER
+	/*
 	if(this->wificonnected && !this->mqttconnected && this->timerMillisPassed(0,30*1000)) {		
 		this->findAndConnectMQTT();
 		this->timerReset(0);
 	};
 	yield();
-
+	*/
+	
 	//Keep trying to connect
 	if(!this->wificonnected) {
 		this->connectWIFI(this->settings.getItem("T0082"),this->settings.getItem("T0083"));	
@@ -1337,14 +1324,19 @@ void Ioteey::process() {
 	yield();
 
 	// handle MQTT calls
+	//TODO: DO MQTT LATER
+/*	
 	if(this->wificonnected && this->mqttconnected) {
 		if(this->client.connected()) {
 			this->client.loop();
 		};
 	};	
 	yield();
+*/
 	
 	//Check if MQTT server went down every 30 seconds and degrade service
+	//TODO: DO MQTT LATER
+/*	
 	if(this->mqttconnected && this->timerMillisPassed(1,30*1000)) {
 		if (!this->client.connected()) {
 			Serial.println("Lost connection with MQTT server. Trying to re-establish");
@@ -1353,7 +1345,7 @@ void Ioteey::process() {
 		this->timerReset(1);
 	};
 	yield();
-     
+*/     
      //See if there are serial messages to process
      if(Serial.available()>0) {
 	    String d = Serial.readString();	    
@@ -1382,10 +1374,11 @@ void Ioteey::process() {
 				this->printstatus(this->wificonnected);	
 				this->printstatus("OK");	
 			};
-			if(command.substring(0,10)=="MQTTSTATUS") {
-				this->printstatus(this->mqttconnected);	
-				this->printstatus("OK");	
-			};
+			//TODO: DO MQTT LATER
+			//if(command.substring(0,10)=="MQTTSTATUS") {
+			//	this->printstatus(this->mqttconnected);	
+			//	this->printstatus("OK");	
+			//};
 			if(command.substring(0,6)=="WHOAMI") { //sets info about the thing			
 				this->printstatus("START");
 				for (int i = 0; i < this->settings.size(); i++){
@@ -1584,39 +1577,6 @@ long Ioteey::getValueMillis(char* key) {
 		return this->lastupdatemillis[index];
 	} else {
 		return 0;
-	};
-};
-
-bool Ioteey::publishDeviceValueIfNeeded(char* deviceid,char* value) {
-	if(this->deviceValueChanges(deviceid,value)) {
-		Serial.print("Value changed to ");
-		Serial.println(value);
-		if(this->mqttconnected) {
-			return this->publishDeviceValue(deviceid,value);
-		} else {
-			return false;
-		};
-	} else {
-		if(this->mqttconnected) {
-			//check if we are approaching the keepalive time. We don't want an OFFLINE notice, so we update anyways even if it is with same value
-			char key[50]="";
-			strcat(key,"device-");
-			strcat(key,deviceid);
-			long differenceinsecs = (millis() - this->getValueMillis(key)) / 1000;	
-			long threshold = this->keepalive - 10; //10 seconds to spare
-			if(differenceinsecs >= threshold) { //do this 10 seconds before the keep alive
-				Serial.print("getValueMillis(key)): ");
-				Serial.println(this->getValueMillis(key));
-				Serial.print("differenceinsecs: ");
-				Serial.println(differenceinsecs);
-				Serial.print("threshold: ");
-				Serial.println(threshold);				
-				//Serial.println("Value updated to same because of risk or keepalive issues");
-				return this->publishDeviceValue(deviceid,value);			
-			} else {
-				return false;
-			};
-		};
 	};
 };
 
@@ -1897,45 +1857,7 @@ void Ioteey::readSettingsFromEEPROM() {
 void Ioteey::initializeSettings() {
    this->settings.resetMap();
 };
-
-
-//bool Ioteey::initializeDevice(int deviceid,int initialvalue) {
-	//char buf[10];
-	
-	//sprintf (buf, "%i", initialvalue);	
-	//return this->initializeDevice(deviceid,buf);
-//};
   	 			
-bool Ioteey::publishDeviceValue(char* deviceid,int value) {
-	char buf[10];
-	
-	sprintf (buf, "%i", value);
-	return this->publishDeviceValue(deviceid,buf);
-};
-
-bool Ioteey::deviceValueChanges(char* deviceid, int value) {
-	char buf[10];
-	
-	sprintf (buf, "%i", value);
-	return this->deviceValueChanges(deviceid,buf);
-};
- 	
-bool Ioteey::publishDeviceValueIfNeeded(char* deviceid,int value) {
-	char buf[10];
-	
-	sprintf (buf, "%i", value);
-	return this->publishDeviceValueIfNeeded(deviceid,buf);
-};
-
-bool Ioteey::publishDeviceValue(char* deviceid,char* value) {
-  if(this->mqttconnected) {	
-		this->publishDeviceValueWithMQTT(deviceid,value);
-  };	
-};
-
-
-
-
 
 
 
@@ -1943,7 +1865,8 @@ bool Ioteey::publishDeviceValue(char* deviceid,char* value) {
 //  MQTT RELATED METHODS
 // TODO: ALL COMMENTED BECAUSE YOU NEED TO FINISH THIS
 //////////////////////////////////////////////////////////////////////////////
-
+//TODO: DO MQTT LATER
+/*
 void Ioteey::buildTopicTopLevel(char* topic) {
 	strcpy(topic,"things/");
 	strcat(topic,this->getThingCode().c_str());
@@ -2135,3 +2058,94 @@ void Ioteey::loadCallbackInfo(char* topic, byte* payload, unsigned int length) {
 	
 };
 
+*/
+
+//TODO: DO MQTT LATER
+/*
+bool Ioteey::findAndConnectMQTT() {
+  int n = MDNS.queryService("http", "tcp"); // Send out query for esp tcp services
+  if (n == 0) {
+    Serial.println("no services found");
+  }
+  else {
+    for (int i = 0; i < n; ++i) {
+      if(MDNS.hostname(i)=="IOTEEYSERVICE" && MDNS.port(i)==1883) {
+	      Serial.println("Found IOTEEYSERVICE server.");	      
+		  if(this->connectMQTT(MDNS.IP(i).toString(),String(MDNS.port(i)),this->settings.getItem("T0086"),this->settings.getItem("T0087"))) {
+			//return true;
+		  } else {
+			//return false;
+		  };	      	      	      
+	  };
+    }
+  }
+  Serial.println();		
+};
+*/   
+
+//TODO: DO MQTT LATER
+/*
+bool Ioteey::publishDeviceValueIfNeeded(char* deviceid,char* value) {
+	if(this->deviceValueChanges(deviceid,value)) {
+		Serial.print("Value changed to ");
+		Serial.println(value);
+		//TODO: DO MQTT LATER
+		if(this->mqttconnected) {
+			return this->publishDeviceValue(deviceid,value);
+		} else {
+			return false;
+		};
+	} else {
+		if(this->mqttconnected) {
+			//check if we are approaching the keepalive time. We don't want an OFFLINE notice, so we update anyways even if it is with same value
+			char key[50]="";
+			strcat(key,"device-");
+			strcat(key,deviceid);
+			long differenceinsecs = (millis() - this->getValueMillis(key)) / 1000;	
+			long threshold = this->keepalive - 10; //10 seconds to spare
+			if(differenceinsecs >= threshold) { //do this 10 seconds before the keep alive
+				Serial.print("getValueMillis(key)): ");
+				Serial.println(this->getValueMillis(key));
+				Serial.print("differenceinsecs: ");
+				Serial.println(differenceinsecs);
+				Serial.print("threshold: ");
+				Serial.println(threshold);				
+				//Serial.println("Value updated to same because of risk or keepalive issues");
+				return this->publishDeviceValue(deviceid,value);			
+			} else {
+				return false;
+			};
+		};
+	};
+};
+*/
+
+//TODO: DO MQTT LATER
+//bool Ioteey::publishDeviceValue(char* deviceid,char* value) {
+//  if(this->mqttconnected) {	
+//		this->publishDeviceValueWithMQTT(deviceid,value);
+//  };	
+//};
+
+/*
+bool Ioteey::publishDeviceValue(char* deviceid,int value) {
+	char buf[10];
+	
+	sprintf (buf, "%i", value);
+	return this->publishDeviceValue(deviceid,buf);
+};
+
+bool Ioteey::deviceValueChanges(char* deviceid, int value) {
+	char buf[10];
+	
+	sprintf (buf, "%i", value);
+	return this->deviceValueChanges(deviceid,buf);
+};
+ 	
+bool Ioteey::publishDeviceValueIfNeeded(char* deviceid,int value) {
+	char buf[10];
+	
+	sprintf (buf, "%i", value);
+	return this->publishDeviceValueIfNeeded(deviceid,buf);
+};
+*/
