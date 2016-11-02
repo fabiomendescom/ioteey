@@ -8,6 +8,7 @@ IOTEEY was born.
 * When joined to a network, Ioteeys present themselves with an informational web page with the ability to go to a settings page
 * Ioteey devices broadcast their IPs and ports through mDNS
 * Ioteey devices broadcast using SSDP for UPnP discovery. (NOTE: The services discovery is not implemented yet)
+* Ioteey devices can be integrated with Samsung Smartthings. They can be added and controlled just like any other Smartthings device.
 
 ## Getting Started
 
@@ -15,6 +16,13 @@ IOTEEY was born.
 * Copy code to a directory and make sure the Arduino IDE File->Preferences->Settings->Sketchbook location points to the root of the folder.
 * Connect your ESP8266 to the USB
 * Make sure to choose Tools->Board Node MCU 1.0 (ESP-12E Module) and Programmer: Arduino ISP
+
+* Open the examples and check the code. Start with the "BasicExample.ino" for a basic idea of how the Ioteey interacts
+
+### Samsung Smartthings integration
+
+* Copy the groovy files inside "Smartthings" directory into your Smartthings portal. 
+
 
 ### Prerequisites
 
@@ -26,20 +34,18 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
 
 ## Authors
 
-* **Fabio Mendes** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Fabio Mendes** - *Initial work* - [PurpleBooth](https://github.com/fabiomendescom)
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License
 
 ## Acknowledgments
 
-* Hat tip to anyone who's code was used
-* Inspiration
-* etc
+* Add people who provided libraries
+* 
